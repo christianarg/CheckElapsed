@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using CheckElapsed;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -34,10 +35,7 @@ namespace CheckElapsedTests
             var someService = new SomeService();
             someService.SendMailEvery = TimeSpan.FromMinutes(1);
             // ACT
-            for (int i = 0; i < 100; i++)
-            {
-                someService.SendEmailIfSomethingGoneWrong();
-            }
+            ExecuteSendmailNTimes(someService, times: 100);
             // ASSERT
             Assert.AreEqual(1, someService.EmailsSent);
         }
@@ -49,11 +47,8 @@ namespace CheckElapsedTests
             var someService = new SomeService();
             someService.SendMailEvery = TimeSpan.FromSeconds(10);
             // ACT
-            for (int i = 0; i < 10; i++)
-            {
-                someService.SendEmailIfSomethingGoneWrong();
-            }
-            
+            ExecuteSendmailNTimes(someService, times: 10);
+
             Thread.Sleep(TimeSpan.FromSeconds(10));
             someService.SendEmailIfSomethingGoneWrong();
 
@@ -68,22 +63,60 @@ namespace CheckElapsedTests
             var someService = new SomeService();
             someService.SendMailEvery = TimeSpan.FromSeconds(10);
             // ACT
-            Console.WriteLine("StartFor");
-            for (int i = 0; i < 10; i++)
+            ExecuteSendmailNTimes(someService, times: 10);
+            Thread.Sleep(TimeSpan.FromSeconds(10));
+
+            someService.SendEmailIfSomethingGoneWrong();
+            someService.SendEmailIfSomethingGoneWrong();
+
+            // ASSERT
+            Assert.AreEqual(2, someService.EmailsSent);
+        }
+
+        [TestMethod]
+        public void SendMailOnceAminuteMultipleParallel()
+        {
+            // ARRANGE
+            var someService = new SomeService();
+            someService.SendMailEvery = TimeSpan.FromMinutes(1);
+            // ACT
+            ExecuteSendMailNTimesParallel(someService, times:10);
+
+            // ASSERT
+            Assert.AreEqual(1, someService.EmailsSent);
+        }
+
+        [TestMethod]
+        public void SendMailOnce10SecondsAndThenWaitForElapsedMultipleParallel()
+        {
+            // ARRANGE
+            var someService = new SomeService();
+            someService.SendMailEvery = TimeSpan.FromSeconds(10);
+            // ACT
+            ExecuteSendMailNTimesParallel(someService, times: 10);
+            Thread.Sleep(TimeSpan.FromSeconds(10));
+
+            ExecuteSendMailNTimesParallel(someService, times: 4);
+
+            // ASSERT
+            Assert.AreEqual(2, someService.EmailsSent);
+        }
+
+
+        private static void ExecuteSendMailNTimesParallel(SomeService someService, int times)
+        {
+            Parallel.For(0, times, new ParallelOptions { MaxDegreeOfParallelism = 10 }, (i) =>
+            {
+                someService.SendEmailIfSomethingGoneWrong();
+            });
+        }
+
+        private static void ExecuteSendmailNTimes(SomeService someService, int times)
+        {
+            for (int i = 0; i < times; i++)
             {
                 someService.SendEmailIfSomethingGoneWrong();
             }
-            Console.WriteLine("EndFor");
-            Thread.Sleep(TimeSpan.FromSeconds(10));
-            
-            someService.SendEmailIfSomethingGoneWrong();
-            someService.SendEmailIfSomethingGoneWrong();
-            //for (int i = 0; i < 10; i++)
-            //{
-            //    someService.SendEmailIfSomethingGoneWrong();
-            //}
-            // ASSERT
-            Assert.AreEqual(2, someService.EmailsSent);
         }
     }
 
