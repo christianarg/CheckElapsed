@@ -12,7 +12,7 @@ namespace CheckElapsedTests
         [TestCleanup]
         public void CleanUp()
         {
-            ElapsedChecker.ElapsedDictionary = new ConcurrentDictionary<string, ElapsedData>();
+            ElapsedChecker.ElapsedDictionary = new ConcurrentDictionary<string, ElapsedEntry>();
         }
 
         [TestMethod]
@@ -53,6 +53,7 @@ namespace CheckElapsedTests
             {
                 someService.SendEmailIfSomethingGoneWrong();
             }
+            
             Thread.Sleep(TimeSpan.FromSeconds(10));
             someService.SendEmailIfSomethingGoneWrong();
 
